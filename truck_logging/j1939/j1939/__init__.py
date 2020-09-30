@@ -76,6 +76,7 @@ class j1939Listner(canListener):
             
 
 class Bus(BusABC):
+    
     """
     A CAN Bus that implements the J1939 Protocol.
 
