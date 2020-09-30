@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="5c7b4680-38ec-466a-b09c-f8fd89695dca" name="carpi" url="http://carpi.local">
+        <fileTransfer rootFolder="/home/dietpi" accessType="SFTP" host="carpi.local" port="22" sshConfigId="f4992493-3834-4d83-a8e1-d3451977e28c" sshConfig="carpi">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
