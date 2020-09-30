@@ -9,6 +9,8 @@ import json
 
 import can
 import j1939
+
+#import xj1939 as j1939
 import logging
 import pretty_j1939.parse
 
