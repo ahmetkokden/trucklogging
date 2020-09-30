@@ -1,0 +1,3 @@
+[submodule "j1939"]
+	path = j1939
+	url = https://github.com/malefs/python-j1939.git
