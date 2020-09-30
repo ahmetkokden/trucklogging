@@ -1,19 +1,17 @@
 
-#!/usr/bin/env python
 
 """
 This shows how message filtering works.
 """
-
 
 import time
 import can
 
 def main():
     """Send some messages to itself and apply filtering."""
-    with can.Bus(bustype='socketcan', channel='can0', bitrate=500000, receive_own_messages=True) as bus:
+    with can.Bus(bustype='socketcan', channel='can0', bitrate=500000, receive_own_messages=False) as bus:
 
-        can_filters = [{"can_id": 1, "can_mask": 0xF, "extended": True}]
+        can_filters = [{"can_id": 0x14ff0331, "can_mask": 0xF, "extended": True}]
         bus.set_filters(can_filters)
 
         # print all incoming messages, wich includes the ones sent,
