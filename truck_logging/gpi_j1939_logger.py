@@ -10,8 +10,6 @@ import json
 import can
 import pj1939 as j1939
 import logging
-
-
 import pretty_j1939.parse
 
 pretty_j1939.parse.init_j1939db()
