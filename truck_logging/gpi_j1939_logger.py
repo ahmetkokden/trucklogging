@@ -8,7 +8,7 @@ import textwrap
 import json
 
 import can
-import pj1939 as j1939
+import j1939
 import logging
 import pretty_j1939.parse
 
