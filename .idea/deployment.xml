@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="carpi" showEqualInSync="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="carpi" compareModeInSync="TEXT" showEqualInSync="true">
     <serverData>
-      <paths name="Copy of project-level server 'carpi'">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/truck_logging" local="$PROJECT_DIR$/truck_logging" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="carpi">
         <serverdata>
           <mappings>
-            <mapping deploy="/truck_logging" local="$PROJECT_DIR$/truck_logging" web="/" />
+            <mapping deploy="/home/dietpi/canlogger_actros" local="$PROJECT_DIR$" web="/home/dietpi/canlogger_actros" />
           </mappings>
         </serverdata>
       </paths>

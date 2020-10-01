@@ -168,7 +168,7 @@ class Bus(BusABC):
                 logger.info('Aborting message %s bus is not running', inboundMessage)
         if isinstance(inboundMessage, Message):
             logger.info('\n\nnotification: Got a Message from CAN: %s' % inboundMessage)
-            if inboundMessage.id_type:
+            if inboundMessage.is_extended_id: #inboundMessage.id_type:
                 # Extended ID
                 # Only J1939 messages (i.e. 29-bit IDs) should go further than this point.
                 # Non-J1939 systems can co-exist with J1939 systems, but J1939 doesn't care
