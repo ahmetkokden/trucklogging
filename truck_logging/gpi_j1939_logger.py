@@ -9,7 +9,7 @@ import json
 
 import can
 import j1939
-import os,time
+import os, time
 import redis
 from redis_dict import RedisDict
 from redis import Redis
@@ -18,18 +18,20 @@ from rq import Queue
 from influxdb import InfluxDBClient
 import re
 
-#import xj1939 as j1939
+# import xj1939 as j1939
 import logging
 import pretty_j1939.parse
 import subprocess
 
-#python -m can.player  -v  -c vcan0 can_zuendung_gas_500k_candump-2020-05-08_122006.log
+
+# python -m can.player  -v  -c vcan0 can_zuendung_gas_500k_candump-2020-05-08_122006.log
 
 def store2influx():
     pass
-    #if (!influxDB.describeDatabases().contains(dbName)) {
-    #...
-    #}
+    # if (!influxDB.describeDatabases().contains(dbName)) {
+    # ...
+    # }
+
 
 def dict_to_redis_hset(r, hkey, dict_to_store):
     """
@@ -44,17 +46,18 @@ def dict_to_redis_hset(r, hkey, dict_to_store):
     """
     return all([r.hset(hkey, k, v) for k, v in dict_to_store.items()])
 
+
 def run_linuxprocess(cmd):
     process = subprocess.Popen(cmd.split(),
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
     returncode = process.wait(timeout=2)
     logging.debug(f"{cmd} return: {returncode}")
-    retdata=process.stdout.read().decode()
+    retdata = process.stdout.read().decode()
     logging.debug(retdata)
 
-def init_can_system(candev:str):
 
+def init_can_system(candev: str):
     '''
 
     :param candev:
@@ -62,16 +65,17 @@ def init_can_system(candev:str):
     '''
     try:
         run_linuxprocess(f'whoami')
-        #run_linuxprocess(f'ip -a')
+        # run_linuxprocess(f'ip -a')
         run_linuxprocess(f'sudo /sbin/ip link set {candev} down')
         run_linuxprocess(f'sudo /sbin/ip link set {candev} up type can bitrate 500000 restart-ms 1000')
         run_linuxprocess(f'sudo /sbin/ip link set {candev} txqueuelen 65536')
     except subprocess.CalledProcessError as e:
         logging.debug(e)
 
-    #sudo ip link set can1 txqueuelen 65536
-#sudo ip link set can0 up type can bitrate 500000
+    # sudo ip link set can1 txqueuelen 65536
 
+
+# sudo ip link set can0 up type can bitrate 500000
 
 
 def sniffcalc(msg):
@@ -79,34 +83,33 @@ def sniffcalc(msg):
     print(msg)
 
 
-
 class J1939CANanalyser:
     '''
     Analyse can Messages with J1939
 
     '''
-    def __init__(self,can_channel="can0"):
-        self.logger= logging.getLogger()
+
+    def __init__(self, can_channel="can0"):
+        self.logger = logging.getLogger()
         self.start_time = None
         self.rdb = redis.Redis(host='localhost', port=6379, db=0)
         self.idb = InfluxDBClient('localhost', 8086, 'USERNAME', 'PASSWORD', 'DATABASE')
-        self.can_channel=can_channel
-        self.describer=None
+        self.can_channel = can_channel
+        self.describer = None
         self.init_prettyj1939(pgns=True, spns=True)
         self.ids = {}
-        self.analyse_d=Dict(redis=r, key=f'pgn_{can_channel}')
+        self.analyse_d = Dict(redis=r, key=f'pgn_{can_channel}')
 
-    def init_prettyj1939(self,pgns=True, spns=True):
+    def init_prettyj1939(self, pgns=True, spns=True):
         pretty_j1939.parse.init_j1939db()
 
         self.describer = pretty_j1939.parse.get_describer(describe_pgns=pgns, describe_spns=spns,
-                                                     describe_link_layer=True,
-                                                     describe_transport_layer=False,
-                                                     include_transport_rawdata=False,
-                                                     include_na=False)
+                                                          describe_link_layer=True,
+                                                          describe_transport_layer=False,
+                                                          include_transport_rawdata=False,
+                                                          include_na=False)
 
-
-    def write2influx(self,data):
+    def write2influx(self, data):
         json_payload = []
         time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         try:
@@ -126,23 +129,22 @@ class J1939CANanalyser:
         except Exception as exception:
             self.logger.debug(f"iflux write exception: {exception}")
 
-    def extractmsg(self,msg):
-        edata= {"ts":msg.timestamp,
-                "pr":msg.arbitration_id.priority,
-                "sa":msg.source,
-                "da":msg.arbitration_id.destination_address_value,
-                "pgn":msg.pgn,
-                "data":bytes(msg.data)}
+    def extractmsg(self, msg):
+        edata = {"ts": msg.timestamp,
+                 "pr": msg.arbitration_id.priority,
+                 "sa": msg.source,
+                 "da": msg.arbitration_id.destination_address_value,
+                 "pgn": msg.pgn,
+                 "data": bytes(msg.data)}
         return edata
 
-
-    def statistics(self,msg,sorting=False):
+    def statistics(self, msg, sorting=False):
         key = msg.arbitration_id.can_id
-        #key = msg.pgn
+        # key = msg.pgn
         # print(msg.timestamp, msg.arbitration_id.priority, msg.source, msg.arbitration_id.destination_address_value,msg.pgn, msg.data, )
         # Sort the extended IDs at the bottom by setting the 32-bit high
-        #if msg.is_extended_id:
-        #key |= 1 << 32
+        # if msg.is_extended_id:
+        # key |= 1 << 32
 
         new_id_added, length_changed = False, False
         if not sorting:
@@ -152,7 +154,7 @@ class J1939CANanalyser:
                 # Set the start time when the first message has been received
                 if not self.start_time:
                     self.start_time = msg.timestamp
-            #elif len(msg.data) != len(self.ids[key]["msg"].data):
+            # elif len(msg.data) != len(self.ids[key]["msg"].data):
             #    length_changed = True
 
             if new_id_added or length_changed:
@@ -171,18 +173,18 @@ class J1939CANanalyser:
             self.ids[key]["count"] += 1
 
         # Format the CAN-Bus ID as a hex value
-        #arbitration_id_string = "0x{0:0{1}X}".format(msg.arbitration_id.can_id, 8 )
-        #self.logger.info(arbitration_id_string)
+        # arbitration_id_string = "0x{0:0{1}X}".format(msg.arbitration_id.can_id, 8 )
+        # self.logger.info(arbitration_id_string)
 
-    def show(self,translate=True):
-        #r.set(msg.pgn, bytes(msg.data))
+    def show(self, translate=True):
+        # r.set(msg.pgn, bytes(msg.data))
         #
         print(80 * "-")
         print("canid\t\tcount\t\tdt")
         for i, key in enumerate(sorted(self.ids.keys())):
             # Set the new row index, but skip the header
             self.ids[key]["row"] = i + 1
-            msg=self.ids[key].get("msg")
+            msg = self.ids[key].get("msg")
             msgstr = " ".join("{:02x}".format(byte) for byte in msg.get("data"))
 
             if translate:
@@ -190,50 +192,52 @@ class J1939CANanalyser:
                 sa = j1939descr.get('SA')
                 da = j1939descr.get('DA')
                 pgn = j1939descr.get('PGN')
-                #print (j1939descr)
+                # print (j1939descr)
 
-                j1939vals={}
+                j1939vals = {}
                 while j1939descr:
-                    name,val=j1939descr.popitem()   #get values backwards from ordered dict until 'SA'
-                    if  'SA' not in name :
-                        unit=re.search("(?<=\[).+?(?=\])", val)
+                    name, val = j1939descr.popitem()  # get values backwards from ordered dict until 'SA'
+                    if 'SA' not in name:
+                        unit = re.search("(?<=\[).+?(?=\])", val)
                         if unit is not None:
-                            unit=unit.group()
+                            unit = unit.group()
                         else:
-                            unit=""
-                        data=val.split()
-                        j1939vals[name]=(data[0],unit)
+                            unit = ""
+                        data = val.split()
+                        j1939vals[name] = (data[0], unit)
                     else:
                         break
 
                 print(
                     f"{key:08x} {self.ids[key].get('count'): 4}\t{self.ids[key].get('dt'):.2f}\t{sa}\t{da} {pgn}")  # \t{msgstr}, end='')
 
-                for k,v in j1939vals.items():
+                for k, v in j1939vals.items():
                     print(f"\t\t\t\t{k} {v[0]} {v[1]}")
 
             else:
-                print(f"{key:08x} {self.ids[key].get('count'): 4} {self.ids[key].get('dt'):.1f} {msg.get('sa'):3} {msg.get('da'):3} {msg.get('pgn'):6} 0x{msg.get('pgn'):04x}  {msgstr}")
+                print(
+                    f"{key:08x} {self.ids[key].get('count'): 4} {self.ids[key].get('dt'):.1f} {msg.get('sa'):3} {msg.get('da'):3} {msg.get('pgn'):6} 0x{msg.get('pgn'):04x}  {msgstr}")
 
 
-#65282,65280, 65281,65296,65226,65284, Exhaust Emission Controller( 61)
+# 65282,65280, 65281,65296,65226,65284, Exhaust Emission Controller( 61)
 def setlogging(level_name):
     logger = logging.getLogger()
     loglevel = logging.DEBUG
     try:
-        loglevel=getattr(logging, level_name.upper())
-        logger.setLevel(loglevel) # type: ignore
+        loglevel = getattr(logging, level_name.upper())
+        logger.setLevel(loglevel)  # type: ignore
     except AttributeError:
         logger.setLevel(loglevel)
 
     logger.debug("Logging set to {}".format(logging.getLevelName(loglevel)))
 
-    #logging.basicConfig( level= logging.getLevelName(levelstr))#filename=logfile,
+    # logging.basicConfig( level= logging.getLevelName(levelstr))#filename=logfile,
     ch = logging.StreamHandler()
     ch.setLevel(loglevel)
     chformatter = logging.Formatter('%(name)25s | %(threadName)10s | %(levelname)5s | %(message)s')
     ch.setFormatter(chformatter)
     logger.addHandler(ch)
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -249,11 +253,11 @@ def parse_arguments():
                         default=False)
 
     filter_group = parser.add_mutually_exclusive_group()
-    filter_group.add_argument('--pgn',nargs='+')
+    filter_group.add_argument('--pgn', nargs='+')
     filter_group.add_argument('--source', nargs='+')
-    filter_group.add_argument('--filter',type=argparse.FileType('r'))
-    parser.add_argument('-c', '--channel',default='can0')
-    parser.add_argument('-i', '--interface', dest="interface",default='socketcan')
+    filter_group.add_argument('--filter', type=argparse.FileType('r'))
+    parser.add_argument('-c', '--channel', default='can0')
+    parser.add_argument('-i', '--interface', dest="interface", default='socketcan')
 
     return parser.parse_args()
 
@@ -264,11 +268,11 @@ if __name__ == "__main__":
     verbosity = args.verbosity
     logging_level_name = ['critical', 'error', 'warning', 'info', 'debug', 'subdebug'][min(5, verbosity)]
     setlogging('error')
-    can.set_logging_level('error')#logging_level_name)
+    can.set_logging_level('error')  # logging_level_name)
 
     logging.info("Start")
 
-    #r_dic = RedisDict(namespace='app_name')
+    # r_dic = RedisDict(namespace='app_name')
     r = redis.Redis(host='localhost', port=6379, db=0)
     r.set('startlogging', 1)
     q = Queue(connection=Redis())
@@ -298,34 +302,34 @@ if __name__ == "__main__":
     if args.channel != 'vcan0':
         init_can_system(args.channel)
 
-    canalyse=J1939CANanalyser(args.channel)
+    canalyse = J1939CANanalyser(args.channel)
     bus = j1939.Bus(channel=args.channel, bustype=args.interface, j1939_filters=filters, timeout=0.5)
 
     logging.info(f"channel info  : {bus.can_bus.channel_info} ")
     log_start_time = datetime.datetime.now()
     logging.info(f'can.j1939 logger started on {log_start_time}')
-    #describer=init_prettyj1939(pgns=True,spns=False)
-    notifier = can.Notifier(bus, [canalyse.statistics])#sniffcalc can.Logger("logfile.asc") can.Printer()
+    # describer=init_prettyj1939(pgns=True,spns=False)
+    notifier = can.Notifier(bus, [canalyse.statistics])  # sniffcalc can.Logger("logfile.asc") can.Printer()
     try:
         while True:
-        #for msg in bus:
-        #    if args.hex_out:
-        #        msg.display_radix = 'hex'
-        #    else:
-        #        msg.display_radix = 10
-            #print(msg.timestamp, msg.arbitration_id.priority, msg.source, msg.arbitration_id.destination_address_value,msg.pgn, msg.data, )
-            #r.set(msg.pgn, bytes(msg.data))
-            #description = describer(msg.data, msg.arbitration_id.can_id)
-            #print(description)
-        #    if bool(description) is True:
-        #        # print(description)
-        #        pedal = description.get("Accelerator Pedal Position 1")
-        #        if pedal:
-        #            pass
-                    # print (msg.timestamp,pedal)
+            # for msg in bus:
+            #    if args.hex_out:
+            #        msg.display_radix = 'hex'
+            #    else:
+            #        msg.display_radix = 10
+            # print(msg.timestamp, msg.arbitration_id.priority, msg.source, msg.arbitration_id.destination_address_value,msg.pgn, msg.data, )
+            # r.set(msg.pgn, bytes(msg.data))
+            # description = describer(msg.data, msg.arbitration_id.can_id)
+            # print(description)
+            #    if bool(description) is True:
+            #        # print(description)
+            #        pedal = description.get("Accelerator Pedal Position 1")
+            #        if pedal:
+            #            pass
+            # print (msg.timestamp,pedal)
 
             # print(msg)
-            #logging.info("looop")
+            # logging.info("looop")
             canalyse.show()
 
             time.sleep(5)
