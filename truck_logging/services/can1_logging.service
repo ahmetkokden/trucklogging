@@ -1,0 +1,16 @@
+[Unit]
+Description=Carpi logging service can0
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/dietpi/prosilva-pi-software/piedge_service
+ExecStart=/home/dietpi/.virtualenvs/py3env/bin/python /home/dietpi/canlogger_actros/truck_logging/gpi_j1939_logger.py -c can1
+StandardOutput=syslog
+StandardError=syslog
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=network.target
