@@ -23,6 +23,9 @@ filterlist_can0 = [
     0x18fef519,
     0x18fef521,
     0x18fef721,
+    0x18fec134,
+    0x14ff0044,
+    0x14ff000f
 ]
 
 
