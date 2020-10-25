@@ -209,6 +209,11 @@ if __name__ == "__main__":
     if "1" in args.channel:
         can_filters = filterlist.getcan1filter()
 
+    print("CANfilter  IDs:")
+    for el in can_filters:
+        # print (el)
+        print(f"CANID: 0x{el.get('can_id'):07x},mask: 0x{el.get('can_mask'):x}, extended: {el.get('extended')} ")
+
     config = {"can_filters": can_filters, "single_handle": True}
     bus = can.Bus(channel=args.channel, **config)
 
