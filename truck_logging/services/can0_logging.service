@@ -5,12 +5,13 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/dietpi/prosilva-pi-software/piedge_service
-ExecStart=/home/dietpi/.virtualenvs/py3env/bin/python /home/dietpi/canlogger_actros/truck_logging/gpi_j1939_logger.py -c can0
+WorkingDirectory=/home/dietpi/canlogger_actros/truck_logging
+ExecStart=/home/dietpi/.virtualenvs/py3env/bin/python /home/dietpi/canlogger_actros/truck_logging/gpi_j1939_logger.py -c can0 -b 500000
 StandardOutput=syslog
 StandardError=syslog
 Restart=always
 RestartSec=3
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=network.target

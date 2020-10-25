@@ -14,7 +14,7 @@ import argparse
 import os
 import subprocess
 import logging
-
+from table_logger import TableLogger
 
 def run_linuxprocess(cmd):
     process = subprocess.Popen(cmd.split(),
@@ -58,32 +58,63 @@ def init_slcan_system(candev: str):
         logging.debug(e)
 
 
-def udsreqtest(canbus="can2"):
+def udsreqtest(canbus="can2", filename="log.csv"):
     disp, uds_i = ctools.initCAN_UDSInterface(canbus, 0x18DA3DF1, 0x18DAF13D, extended_id=True)
 
     # interface_ok= ctools.check_Interface(uds_i)
     # start extended Session
     logging.debug(f"start extended Session on  {canbus}")
+
+    resultdict = {}
     response = ctools.doDiagnosticSessionControl(uds_i)
     print(response)
     time.sleep(0.5)
-    data = ctools.read_by_identifier(uds_i, 0x1d09, decoder=decoder.hexli, debug=True)
+    # Bilder Actros4 IMG_20200613_083901_TemperaturIstwerte.jpg
+    data = ctools.read_by_identifier(uds_i, 0x1d09, decoder=decoder.hexli,
+                                     debug=True)  # Abgastemp nach Dieselpartikelfilter
     print(data)
+    logging.debug(f"0x1d09: {data}")
+    resultdict[0x1d09] = data
 
-    data = ctools.read_by_identifier(uds_i, 0x1d08, decoder=decoder.hexli, debug=True)
+    data = ctools.read_by_identifier(uds_i, 0x1d08, decoder=decoder.hexli, debug=True)  # Abgastemp nach Diseloxkat
     print(data)
-    data = ctools.read_by_identifier(uds_i, 0x1d07, decoder=decoder.hexli, debug=True)
+    resultdict[0x1d08] = data
+    data = ctools.read_by_identifier(uds_i, 0x1d07, decoder=decoder.hexli, debug=True)  # Abgas vor Dieseloxkat
     print(data)
-    data = ctools.read_by_identifier(uds_i, 0x1d35, decoder=decoder.hexli, debug=True)
+    resultdict[0x1d07] = data
+    data = ctools.read_by_identifier(uds_i, 0x1d35, decoder=decoder.hexli, debug=True)  # Umgebungstemperatur
     print(data)
-    data = ctools.read_by_identifier(uds_i, 0x1d16, decoder=decoder.hexli, debug=True)
+    resultdict[0x1d35] = data
+    data = ctools.read_by_identifier(uds_i, 0x1d16, decoder=decoder.hexli, debug=True)  # Temperatur AdBlue Behälter
     print(data)
-    data = ctools.read_by_identifier(uds_i, 0x1d97, decoder=decoder.hexli, debug=True)
+    resultdict[0x1d16] = data
+    data = ctools.read_by_identifier(uds_i, 0x1d97, decoder=decoder.hexli, debug=True)  # Signalspannung des Bauteils
     print(data)
+    resultdict[0x1d97] = data
 
-    data = ctools.read_by_identifier(uds_i, 0x1d13, decoder=decoder.hexli, debug=True)
+    data = ctools.read_by_identifier(uds_i, 0x1d13, decoder=decoder.hexli, debug=True)  # Abgas nach SCR-Kat
     print(data)
+    resultdict[0x1d13] = data
+
+    response = ctools.check_Interface(uds_i)
+    print(response)
+
     disp.stop()
+
+    with open(filename, 'a+', encoding='ISO-8859-1') as csvfile:
+        # tbl = TableLogger(file=csvfile, csv=True,  timestamp=True,columns='addr,values')
+
+        timestr = datetime.now().strftime("%Y-%m-%dT%H%M%S")
+        resultstr = f'{timestr}\n'
+        for k, v in resultdict.items():
+            if type(v) == dict:
+                resultstr += f'{k:d},{v["value"]}\n'
+            else:
+                resultstr += f'{k:d},{v}\n'
+
+        # resultstr+="\n"
+        csvfile.write(resultstr)
+        logging.debug(resultstr)
 
 
 def udsreqraw():
@@ -167,6 +198,7 @@ def udsreqraw():
     time.sleep(0.5)
 
 
+
 # udsreqtest()
 if __name__ == "__main__":
     # logger = logging.getLogger()
@@ -176,11 +208,16 @@ if __name__ == "__main__":
 
     logging.debug(f"start exhaust logging on {canbus}")
     init_slcan_system(canbus)
-
+    timestr = datetime.now().strftime("%Y-%m-%dT%H%M%S")
+    logpath = "logdata"
+    logfilename = f'{logpath}//exhaust_log{timestr}.csv'
     try:
         while (1):
             # udsreqraw()
-            udsreqtest()
+            udsreqtest(canbus, logfilename)
+            logging.debug("waiting some seconds")
+            time.sleep(2)
+
     except KeyboardInterrupt:
         logging.debug("stop exhaust logging")
         # bus.shutdown()

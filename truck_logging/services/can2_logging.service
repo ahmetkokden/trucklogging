@@ -1,16 +1,17 @@
 [Unit]
-Description=Carpi logging service can0
+Description=Carpi reading exhaust controller data service can2
 Requires=network.target
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/dietpi/prosilva-pi-software/piedge_service
+WorkingDirectory=/home/dietpi/canlogger_actros/truck_logging
 ExecStart=/home/dietpi/.virtualenvs/py3env/bin/python /home/dietpi/canlogger_actros/truck_logging/exhaust_diag_uds.py
 StandardOutput=syslog
 StandardError=syslog
 Restart=always
 RestartSec=3
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=network.target
