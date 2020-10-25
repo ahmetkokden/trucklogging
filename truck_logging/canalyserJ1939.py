@@ -13,26 +13,32 @@ import can
 
 
 class Canlogger:
-    def __init__(self, can_channel="can0"):
+    def __init__(self, can_channel="can0", logpath=""):
         self.canlogger = None
+        self.rdb = redis.Redis(host='localhost', port=6379, db=0)
         self.logger = logging.getLogger()
         self.can_channel = can_channel
-        self.initcanlogger()
+        self.logpath = logpath
+        # self.initcanlogger()
+        self.initlog = 0
 
     def initcanlogger(self):
-        if self.canlogger is not None:
+        ''' stop old if running and create new logger with filename from timestamp'''
+        if self.canlogger is not None:  # stop old logging
             try:
                 self.canlogger.stop()
             except Exception as e:
                 pass
+
         timestr = datetime.now().strftime("%Y-%m-%dT%H%M%S")
         logfilname = f'{self.logpath}//{self.can_channel}_{timestr}_log.blf'
         self.canlogger = can.Logger(filename=logfilname)
         self.logger.debug(f"Init canlogger : {logfilname}")
 
     def logging(self, msg):
+        '''logging only if redisDB enabled it an canlogger is activated'''
         if self.canlogger is not None:
-            if self.rdb.get("logging") == b'1':
+            if self.rdb.get("logging") == b'1':  # logging enabled from redisflag
                 self.canlogger(msg)
                 if self.initlog == 0:
                     self.initlog = 1
@@ -42,6 +48,8 @@ class Canlogger:
                     self.initcanlogger()
                     self.initlog = 0
                     self.logger.info("logging off")
+        else:
+            self.initcanlogger()
 
 
 class J1939CANanalyser:
@@ -69,9 +77,6 @@ class J1939CANanalyser:
         self.sumcount = 0
         # self.ids=Dict(redis=self.rdb, key='cansnap')#self.wdb.Hash('cansnap')
         self.ids = {}
-
-        self.initlog = 1
-        self.logpath = "logdata"
 
         # self.ids.clear()
 

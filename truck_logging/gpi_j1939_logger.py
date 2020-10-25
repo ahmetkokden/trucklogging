@@ -7,6 +7,7 @@ import textwrap
 import json
 from datetime import datetime
 from canalyserJ1939 import J1939CANanalyser
+from canalyserJ1939 import Canlogger
 import filterlist
 
 import can
@@ -198,6 +199,7 @@ if __name__ == "__main__":
         init_can_system(args.channel, args.baud)
 
     canalyse = J1939CANanalyser(args.channel)
+    mycanlogger = Canlogger(args.channel, "logdata")
     # bus = j1939.Bus(channel=args.channel, bustype=args.interface, j1939_filters=filters, timeout=0.5)
     bustype = args.interface
 
@@ -207,18 +209,6 @@ if __name__ == "__main__":
     if "1" in args.channel:
         can_filters = filterlist.getcan1filter()
 
-    # if results.filter:
-    #     print(f"Adding filter(s): {results.filter}")
-    #     for filt in results.filter:
-    #         if ":" in filt:
-    #             _ = filt.split(":")
-    #             can_id, can_mask = int(_[0], base=16), int(_[1], base=16)
-    #         elif "~" in filt:
-    #             can_id, can_mask = filt.split("~")
-    #             can_id = int(can_id, base=16) | 0x20000000  # CAN_INV_FILTER
-    #             can_mask = int(can_mask, base=16) & socket.CAN_ERR_FLAG
-    #         can_filters.append({"can_id": can_id, "can_mask": can_mask})
-
     config = {"can_filters": can_filters, "single_handle": True}
     bus = can.Bus(channel=args.channel, **config)
 
@@ -226,7 +216,8 @@ if __name__ == "__main__":
     log_start_time = datetime.now()
     logging.info(f'can.j1939 logger started on {log_start_time}')
     # describer=init_prettyj1939(pgns=True,spns=False)
-    notifier = can.Notifier(bus, [canalyse.statistics])  # sniffcalc can.Logger("logfile.asc") can.Printer()
+    notifier = can.Notifier(bus, [canalyse.statistics,
+                                  mycanlogger.logging])  # sniffcalc can.Logger("logfile.asc") can.Printer()
 
     try:
         while True:
