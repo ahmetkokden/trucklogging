@@ -17,6 +17,8 @@ filterlist_can0 = [
     0x14fe4f0b,
     0x14fe5a2f,
     0x14feae17,
+    0x14fef217,  # LFE1(65266)
+    0x14fef100,  # CCVS1(65265)
     0x18e00019,
     0x18fee617,
     0x18fef34a,

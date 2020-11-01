@@ -9,6 +9,7 @@ from influxdb import InfluxDBClient
 import json
 from canalyserJ1939 import J1939CANanalyser
 from glob import glob
+import logging
 
 
 # V2.0 API
@@ -22,49 +23,28 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-f",
-        "--file_name",
-        dest="log_file",
-        help="""Path and base log filename, for supported types see can.LogReader.""",
-        default=None,
-    )
-
-    parser.add_argument(
         "-v",
         action="count",
         dest="verbosity",
         help="""loglevel""",
-        default=2,
+        default=0,
     )
 
     parser.add_argument(
-        "-g",
-        "--gap",
-        type=float,
-        help="""<s> minimum time between replayed frames""",
-        default=0.0001,
-    )
-    parser.add_argument(
-        "-s",
-        "--skip",
-        type=float,
-        default=60 * 60 * 24,
-        help="""<s> skip gaps greater than 's' seconds""",
-    )
-
-    parser.add_argument(
-        "--ignore-timestamps",
-        dest="timestamps",
-        help="""Ignore timestamps (send all frames immediately with minimum gap between frames)""",
-        action="store_false",
+        "-i",
+        "--ip",
+        type=str,
+        dest="dbip",
+        default="10.8.0.1",
+        help="""InfluxDB IP"""
     )
 
     parser.add_argument(
         "infile",
         metavar="input-file",
+        nargs='?',
         type=str,
-        help="The file to load. For supported types see can.LogReader.",
-    )
+        help="The file to load. For supported types see can.LogReader.")
 
     return parser.parse_args()
 
@@ -91,10 +71,11 @@ def makePointfromCan(msg, cartag="B-YW", devicetag="can0"):
     return jsondata
 
 
-def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, cartag):
+def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, tagdict):
     timestr = datetime.fromtimestamp(timestamp).astimezone(timezone.utc).isoformat()
     # .strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
+    # Nice format Translated Values (remove Spaces and # for later DB inserts)
     pgn_ = pgn.replace(" ", "").replace("#", "_")
     sa_ = sa.replace(" ", "").replace("#", "_")
     da_ = da.replace(" ", "").replace("#", "_")
@@ -104,15 +85,18 @@ def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, cartag):
         "tags": {
             "sa": sa_,
             "da": da_,
-            "car": cartag
         },
         "time": timestr,
         "fields": {
         }
     }
 
+    # Add extra Tags to measurments
+    j1939point["tags"].update(tagdict)
+
     hasvalue = False
-    # print(f"{pgn_}\t{sa_}\t{da_}\t")
+    print(f"{canid} {pgn_}\t{sa_}\t{da_}\t")
+
     for name, v in j1939vals.items():
 
         value = v[0]
@@ -121,21 +105,23 @@ def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, cartag):
 
         if ("Defined Usage" in name):
             j1939point["fields"][namesmall] = data.decode('latin-1')
-            # msgstr = " ".join("{:02x}".format(byte) for byte in data)
-            # print(f"\t\t\t\t{name} {v[0]} {v[1]}  {msgstr}")
+            msgstr = " ".join("{:02x}".format(byte) for byte in data)
+            print(f"\t\t{name} {v[0]} {v[1]}  {msgstr}")
         else:
             value_ = None
             if len(unit):
                 namesmall += "_" + unit
                 value_ = float(value)
             else:
-                value_ = bool(value)
-            # print(f"\t\t{namesmall} {v[0]} {v[1]}")
+                if value.startswith("0x"):
+                    value_ = int(value[2:], base=16)
+                else:
+                    value_ = int(value)
+            print(f"\t\t{namesmall} {v[0]} {v[1]}")
             j1939point["fields"][namesmall] = value_
             # "value": datastr
 
         hasvalue = True
-
     if hasvalue:
         # print (j1939point)
         return j1939point
@@ -143,34 +129,32 @@ def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, cartag):
         pass  # print ("No Values:"+pgn_)
 
 
-def logimport(filename, cartag="B-YW"):
+def logimport(filename, tagdict={}, db_info={"ip": "10.8.0.1", "port": 8086, "dbname": "canlogger"}):
     canalyse = J1939CANanalyser()
 
     reader = LogReader(filename)
-
+    # for Synchronized readings
     # in_sync = MessageSync(
     #     reader, timestamps=args.timestamps, gap=args.gap, skip=args.skip
     # )
 
-    dbip = "10.8.0.1"
     # dbip="localhost"
-    dbname = "canlogger"
-    client = InfluxDBClient(host=dbip, port=8086, database=dbname)
+    client = InfluxDBClient(host=db_info.get("ip"), port=db_info.get("port"), database=db_info.get("dbname"))
     databaselist = client.get_list_database()
     dbfound = False
     for elem in databaselist:
-        if elem.get('name') == dbname:
+        if elem.get('name') == db_info.get("dbname"):
             dbfound = True
 
     if dbfound == False:
-        client.create_database(dbname)
+        client.create_database(db_info.get("dbname"))
 
-    client.switch_database(dbname)
+    client.switch_database(db_info.get("dbname"))
 
+    # only Influx DB2.0
     # client = InfluxDBClient(url="http://localhost:9999", token="test", org="gpi")
     # bucket = "logger"
     # write_api = client.write_api(write_options=SYNCHRONOUS)
-
     # write_client = client.write_api(write_options=WriteOptions(batch_size=500,
     # flush_interval=10_000,
     # jitter_interval=2_000,
@@ -185,7 +169,6 @@ def logimport(filename, cartag="B-YW"):
     # p2 = Point("my_measurement").tag("location", "New York").field("temperature", 24.3)
 
     # write_api.write(bucket='canlogger', record=[p,p1,p2])
-
     # tables = query_api.query('from(bucket:"my-bucket") |> range(start: -10m)')
 
     print(f"Can LogReader (Started on {datetime.now()})")
@@ -201,7 +184,7 @@ def logimport(filename, cartag="B-YW"):
             sa = j1939vals.pop('sa')
             da = j1939vals.pop('da')
 
-            point = makePointj1938(msg.timestamp, canid, pgn, sa, da, j1939vals, data, cartag)
+            point = makePointj1938(msg.timestamp, canid, pgn, sa, da, j1939vals, data, tagdict=tagdict)
             if point is not None:
                 pointlist.append(point)
             if len(pointlist) > 5000:
@@ -210,32 +193,6 @@ def logimport(filename, cartag="B-YW"):
                 print(filn, ts, count)
                 client.write_points(pointlist)
                 pointlist = []
-
-            # ts=datetime.fromtimestamp(msg.timestamp)
-            # print(f"{ts}\tID:{canid}\t{sa}\t{da} {pgn}")
-            # for name, v in j1939vals.items():
-            #    value = v[0]
-            #    unit = v[1]
-
-            # if ("Defined Usage" in name):
-            #     msgstr = " ".join("{:02x}".format(byte) for byte in data)
-            #     print(f"\t\t\t\t{name} {v[0]} {v[1]}  {msgstr}")
-            # else:
-            #     print(f"\t\t\t\t{name} {v[0]} {v[1]}")
-
-        # for m in in_sync:
-        #     if m.is_error_frame:
-        #         continue
-        #     if args.verbosity >= 3:
-        #         pass
-        #     #print (datetime.fromtimestamp(m.timestamp).astimezone(timezone.utc))
-
-        # count+=1
-        # print (count)
-        # json_body= makePointfromCan(msg=msg)
-        # client.write_points(json_body)#, time_precision='ms')
-
-
 
     except KeyboardInterrupt:
         pass
@@ -249,16 +206,40 @@ def logimport(filename, cartag="B-YW"):
     #             writer.on_message_received(msg)
 
 
+
 if __name__ == "__main__":
+    logger = logging.getLogger()
 
-    args = parse_arguments()
-    # if  args.infile
-
+    # logging.basicConfig( encoding='utf-8', level=logging.DEBUG)#filename='example.log'
     filelist = []
-    for filename in sorted(glob("logdata//logging_backup_truck//can1_2020-10-19T*_log.blf"), key=os.path.getmtime):
-        filelist.append(filename)
+    args = parse_arguments()
 
-    print(filelist)
+    logging_level_name = ['notset', 'debug', 'info', 'warning', 'error', 'critical'][max(0, args.verbosity)]
+    loglevel = getattr(logging, logging_level_name.upper())
+    # loglevel = logging.DEBUG
+    logger.setLevel(loglevel)
+    logging.debug(f"{args=}")
+
+    influxdb_port = 8086
+    dbname = "canlogger1"
+    carid = "B-YW"
+
+    if args.infile is None:
+        for filename in sorted(glob("logdata//logging_backup_truck//can1_2020-10-19T*_log.blf"), key=os.path.getmtime):
+            filelist.append(filename)
+        print(filelist)
+    else:
+        filelist.append(args.infile)
+
+    tagdict = {"car": carid}
+    db_info = {"ip": args.dbip, "port": influxdb_port, "dbname": dbname}
+
     for filn in filelist:
-        print(f"import file:{filn}")
-        logimport(filn)
+        if "can0" in os.path.basename(filn):
+            tagdict["interface"] = "CAN0"
+        if "can1" in os.path.basename(filn):
+            tagdict["interface"] = "CAN1"
+
+        print(f"import file:{filn}, {tagdict=}")
+
+        logimport(filn, tagdict=tagdict, db_info=db_info)
