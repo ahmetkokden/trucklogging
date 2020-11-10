@@ -16,6 +16,14 @@ import subprocess
 import logging
 from table_logger import TableLogger
 
+# 0x1d09 7433 Abgastemp nach Dieselpartikelfilter
+# 0x1d08 7432 Abgastemp nach Diseloxkat
+# 0x1d07 7431 Abgas vor Dieseloxkat
+# 0x1d35 7477 Umgebungstemperatur
+# 0x1d16 7446 Temperatur AdBlue Behälter
+# 0x1d97 7575 Signalspannung des Bauteils
+# 0x1d13 7443 Abgas nach SCR-Kat
+
 def run_linuxprocess(cmd):
     process = subprocess.Popen(cmd.split(),
                                stdout=subprocess.PIPE,
@@ -71,28 +79,28 @@ def udsreqtest(canbus="can2", filename="log.csv"):
     time.sleep(0.5)
     # Bilder Actros4 IMG_20200613_083901_TemperaturIstwerte.jpg
     data = ctools.read_by_identifier(uds_i, 0x1d09, decoder=decoder.hexli,
-                                     debug=True)  # Abgastemp nach Dieselpartikelfilter
+                                     debug=True)  # 0x1d09 7433 Abgastemp nach Dieselpartikelfilter
     print(data)
     logging.debug(f"0x1d09: {data}")
     resultdict[0x1d09] = data
 
-    data = ctools.read_by_identifier(uds_i, 0x1d08, decoder=decoder.hexli, debug=True)  # Abgastemp nach Diseloxkat
+    data = ctools.read_by_identifier(uds_i, 0x1d08, decoder=decoder.hexli, debug=True)  # 0x1d08 7432 Abgastemp nach Diseloxkat
     print(data)
     resultdict[0x1d08] = data
-    data = ctools.read_by_identifier(uds_i, 0x1d07, decoder=decoder.hexli, debug=True)  # Abgas vor Dieseloxkat
+    data = ctools.read_by_identifier(uds_i, 0x1d07, decoder=decoder.hexli, debug=True)  # 0x1d07 7431 Abgas vor Dieseloxkat
     print(data)
     resultdict[0x1d07] = data
-    data = ctools.read_by_identifier(uds_i, 0x1d35, decoder=decoder.hexli, debug=True)  # Umgebungstemperatur
+    data = ctools.read_by_identifier(uds_i, 0x1d35, decoder=decoder.hexli, debug=True)  # 0x1d35 7477 Umgebungstemperatur
     print(data)
     resultdict[0x1d35] = data
-    data = ctools.read_by_identifier(uds_i, 0x1d16, decoder=decoder.hexli, debug=True)  # Temperatur AdBlue Behälter
+    data = ctools.read_by_identifier(uds_i, 0x1d16, decoder=decoder.hexli, debug=True)  # 0x1d16 7446 Temperatur AdBlue Behälter
     print(data)
     resultdict[0x1d16] = data
-    data = ctools.read_by_identifier(uds_i, 0x1d97, decoder=decoder.hexli, debug=True)  # Signalspannung des Bauteils
+    data = ctools.read_by_identifier(uds_i, 0x1d97, decoder=decoder.hexli, debug=True)  # 0x1d97 7575 Signalspannung des Bauteils
     print(data)
     resultdict[0x1d97] = data
 
-    data = ctools.read_by_identifier(uds_i, 0x1d13, decoder=decoder.hexli, debug=True)  # Abgas nach SCR-Kat
+    data = ctools.read_by_identifier(uds_i, 0x1d13, decoder=decoder.hexli, debug=True)  # 0x1d13 7443 Abgas nach SCR-Kat
     print(data)
     resultdict[0x1d13] = data
 

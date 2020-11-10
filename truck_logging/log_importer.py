@@ -114,14 +114,17 @@ def makePointj1938(timestamp, canid, pgn, sa, da, j1939vals, data, tagdict):
                 value_ = float(value)
             else:
                 if value.startswith("0x"):
-                    value_ = int(value[2:], base=16)
+                    pass
+                    #value_ = int(value[2:], base=16)
                 else:
-                    value_ = int(value)
+                    #value_ = int(value)
+                    pass
             print(f"\t\t{namesmall} {v[0]} {v[1]}")
-            j1939point["fields"][namesmall] = value_
+            if value_ is not None:
+                j1939point["fields"][namesmall] = value_
             # "value": datastr
 
-        hasvalue = True
+                hasvalue = True
     if hasvalue:
         # print (j1939point)
         return j1939point
@@ -139,7 +142,7 @@ def logimport(filename, tagdict={}, db_info={"ip": "10.8.0.1", "port": 8086, "db
     # )
 
     # dbip="localhost"
-    client = InfluxDBClient(host=db_info.get("ip"), port=db_info.get("port"), database=db_info.get("dbname"))
+    client = InfluxDBClient(host=db_info.get("ip"), port=db_info.get("port"),username="logger",password="secret___!", database=db_info.get("dbname"))
     databaselist = client.get_list_database()
     dbfound = False
     for elem in databaselist:
@@ -221,11 +224,11 @@ if __name__ == "__main__":
     logging.debug(f"{args=}")
 
     influxdb_port = 8086
-    dbname = "canlogger1"
+    dbname = "canlogger"
     carid = "B-YW"
 
     if args.infile is None:
-        for filename in sorted(glob("logdata//logging_backup_truck//can1_2020-10-19T*_log.blf"), key=os.path.getmtime):
+        for filename in sorted(glob("logdata//logging_backup_truck//can0_2020-10-23T14*_log.blf"), key=os.path.getmtime):
             filelist.append(filename)
         print(filelist)
     else:
