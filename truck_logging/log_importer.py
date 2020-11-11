@@ -223,13 +223,16 @@ if __name__ == "__main__":
     logger.setLevel(loglevel)
     logging.debug(f"{args=}")
 
+    filefilter="logdata//logging_backup_truck//can0_2020-10-19T035250_log*"
     influxdb_port = 8086
     dbname = "canlogger"
     carid = "B-YW"
 
     if args.infile is None:
-        for filename in sorted(glob("logdata//logging_backup_truck//can0_2020-10-23T14*_log.blf"), key=os.path.getmtime):
-            filelist.append(filename)
+        for filename in sorted(glob(filefilter), key=os.path.getmtime):
+            #add only files >0 bytes
+            if os.path.getsize(filename)>0:
+                filelist.append(filename)
         print(filelist)
     else:
         filelist.append(args.infile)

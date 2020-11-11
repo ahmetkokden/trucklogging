@@ -2,7 +2,7 @@
 import sys, os
 import argparse
 from datetime import datetime,timezone
-
+from influxdb import InfluxDBClient
 
 
 #AS07   0x1d07 7431 Abgas vor Dieseloxkat                       0x19=25°C
@@ -19,7 +19,7 @@ valuenames={7433:"Temp_after_Partikelfilter",
             7431:"Temp_before_DieseloxKat",     #-35 -700°C
             7477:"Temp_outside",
             7446:"Temp_AdBlue",                 #-30-60°C
-            7575:"Signalspannung Bauteil_V",      #3V       0x3ff=1023=3.0V
+            7575:"U_Umgebungsensor",            #3V       0x3ff=1023=3.0V
             7443:"Temp_after_SCR-Kat_C"}
 
 timeformat="%Y-%m-%dT%H%M%S"
@@ -33,6 +33,21 @@ A60_point = {
         #"fields": {}
     }
 
+def influxdbconnect(db_info={"ip": "10.8.0.1", "port": 8086, "dbname": "canlogger"}):
+    client = InfluxDBClient(host=db_info.get("ip"), port=db_info.get("port"), username="logger", password="secret___!",
+                            database=db_info.get("dbname"))
+    databaselist = client.get_list_database()
+    dbfound = False
+    for elem in databaselist:
+        if elem.get('name') == db_info.get("dbname"):
+            dbfound = True
+
+    if dbfound == False:
+        client.create_database(db_info.get("dbname"))
+
+    client.switch_database(db_info.get("dbname"))
+    return client
+
 if __name__ == "__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument(
@@ -43,6 +58,8 @@ if __name__ == "__main__":
         help="The file to load")
 
     args= parser.parse_args()
+
+    client=influxdbconnect()
     pointlist=[]
     groupdata={"fields":{}}
     dataerror=False
@@ -61,14 +78,20 @@ if __name__ == "__main__":
                 value=int(data[1], base=16)
                 if value<0:
                     dataerror=True
-                groupdata["fields"][valuenames.get(int(data[0]))]=value
+                groupdata["fields"][valuenames.get(int(data[0])).encode('latin-1')]=value
             if nr==7:
                 #print(groupdata)
                 if dataerror==False:
-                    pointlist.append(groupdata)
+                    p=A60_point.copy()
+                    p.update(groupdata)
+                    pointlist.append(p)
+                    #client.write_points([A60_point])
                 dataerror=False
                 groupdata = {"fields": {}}
 
 
+
         for el in pointlist:
             print(el)
+
+        client.write_points(pointlist)

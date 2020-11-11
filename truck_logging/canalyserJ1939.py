@@ -175,6 +175,10 @@ class J1939CANanalyser:
         # j1939vals = {}      #translated data
         if "65175" in j1939descr.get('PGN'):
             print(j1939descr)
+
+        if "65132" in j1939descr.get('PGN'):    #vehiclespeed
+            print(j1939descr)
+
         while j1939descr:
             name, val = j1939descr.popitem()  # get values backwards from ordered dict until 'SA'
             if 'SA' not in name:
