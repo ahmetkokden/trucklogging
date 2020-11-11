@@ -69,3 +69,7 @@ Thumbs.db
 #ignore kaeferdetection debugimages 
 img_*_blob.png
 img_*_raw.png
+
+#canlogging
+*.blf
+
